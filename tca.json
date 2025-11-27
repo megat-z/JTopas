@@ -1,1 +1,44 @@
-[]
+[
+    {
+        "test_id": "TestTokenizerProperties",
+        "magnitude": 0.88,
+        "phase": 3.3685,
+        "original_semantics": "new_feature_tokenizer_framework"
+    },
+    {
+        "test_id": "TestTokenProperties",
+        "magnitude": 0.66,
+        "phase": 3.3685,
+        "original_semantics": "new_feature_tokenizer_framework"
+    },
+    {
+        "test_id": "TestInputStreamTokenizer",
+        "magnitude": 0.97,
+        "phase": 3.3685,
+        "original_semantics": "new_feature_tokenizer_framework"
+    },
+    {
+        "test_id": "TestDifficultSituations",
+        "magnitude": 1.0,
+        "phase": 3.3685,
+        "original_semantics": "new_feature_tokenizer_framework"
+    },
+    {
+        "test_id": "TestEmbeddedTokenizer",
+        "magnitude": 0.87,
+        "phase": 3.3685,
+        "original_semantics": "new_feature_tokenizer_framework"
+    },
+    {
+        "test_id": "TestPluginTokenizer",
+        "magnitude": 0.91,
+        "phase": 5.1662,
+        "original_semantics": "new_feature_plugin_tokenizer"
+    },
+    {
+        "test_id": "TestTokenizerSpeed",
+        "magnitude": 0.71,
+        "phase": 0.5585,
+        "original_semantics": "performance_test"
+    }
+]
