@@ -1,0 +1,186 @@
+diff --git a/.github/workflows/calc-mpltd.yml b/.github/workflows/calc-mpltd.yml
+new file mode 100644
+index 0000000..7d6562d
+--- /dev/null
++++ b/.github/workflows/calc-mpltd.yml
+@@ -0,0 +1,42 @@
++name: Calculate Amplitudes
++
++on:
++    repository_dispatch:
++        types: [calc-mpltd]
++
++jobs:
++    assign-complex-amplitudes:
++        runs-on: ubuntu-latest
++        permissions:
++            contents: write
++
++        steps:
++            - name: Checkout Repository
++              uses: actions/checkout@v4
++              with:
++                  ref: ${{ github.event.client_payload.branch }}
++
++            - name: Setup Python
++              uses: actions/setup-python@v5
++              with:
++                  python-version: "3.10"
++
++            - name: Install Dependencies
++              run: pip install numpy
++
++            - name: Calculate Magnitudes and Phases
++              run: |
++                  # Reads 'llm.txt' and calculates complex amplitudes for test cases.
++                  # Outputs 'tca.json' which includes:
++                  # - Magnitude: Based on risk/complexity
++                  # - Phase: Based on change nature (for interference modeling)
++                  python scripts/calculate_amplitudes.py
++
++            - name: Commit TCA JSON
++              run: |
++                  git config --global user.name 'JTopas Automation'
++                  git config --global user.email 'automation@jtopas.local'
++                  git add tca.json
++                  # This commit triggers GAS to detect 'tca.json' and fire 'qi-pso'
++                  git commit -m "chore: update tca.json [skip ci]"
++                  git push
+diff --git a/.github/workflows/git-diff.yml b/.github/workflows/git-diff.yml
+new file mode 100644
+index 0000000..a7bc6cf
+--- /dev/null
++++ b/.github/workflows/git-diff.yml
+@@ -0,0 +1,34 @@
++name: Git Diff Extraction
++
++on:
++    repository_dispatch:
++        types: [git-diff]
++
++jobs:
++    extract-changes:
++        runs-on: ubuntu-latest
++        permissions:
++            contents: write
++
++        steps:
++            - name: Checkout Repository
++              uses: actions/checkout@v4
++              with:
++                  ref: ${{ github.event.client_payload.branch }}
++                  fetch-depth: 2 # Required to compare commits
++
++            - name: Extract Git Diff
++              run: |
++                  # Extracts changes from the latest commit to a text file
++                  # This file acts as the input for the Semantic Analysis phase
++                  git diff HEAD^ HEAD > dff.txt
++
++            - name: Commit Diff Artifact
++              run: |
++                  git config --global user.name 'JTopas Automation'
++                  git config --global user.email 'automation@jtopas.local'
++                  git add dff.txt
++                  # This commit will trigger the Google Apps Script webhook again
++                  # The script will detect 'dff.txt' and trigger the 'prompt-llm' workflow
++                  git commit -m "chore: update dff.txt [skip ci]"
++                  git push
+diff --git a/.github/workflows/prompt-llm.yml b/.github/workflows/prompt-llm.yml
+new file mode 100644
+index 0000000..b39501b
+--- /dev/null
++++ b/.github/workflows/prompt-llm.yml
+@@ -0,0 +1,42 @@
++name: LLM Semantic Analysis
++
++on:
++    repository_dispatch:
++        types: [prompt-llm]
++
++jobs:
++    analyze-intent:
++        runs-on: ubuntu-latest
++        permissions:
++            contents: write
++        env:
++            GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
++
++        steps:
++            - name: Checkout Repository
++              uses: actions/checkout@v4
++              with:
++                  ref: ${{ github.event.client_payload.branch }}
++
++            - name: Setup Python
++              uses: actions/setup-python@v5
++              with:
++                  python-version: "3.10"
++
++            - name: Install Dependencies
++              run: pip install google-generativeai
++
++            - name: Prompt Gemini 3.0
++              run: |
++                  # This script should read 'dff.txt' and output 'llm.txt'
++                  # 'llm.txt' contains the semantic summary and relevance scoring
++                  python scripts/prompt_gemini.py
++
++            - name: Commit LLM Response
++              run: |
++                  git config --global user.name 'JTopas Automation'
++                  git config --global user.email 'automation@jtopas.local'
++                  git add llm.txt
++                  # This commit triggers GAS to detect 'llm.txt' and fire 'calc-mpltd'
++                  git commit -m "chore: update llm.txt [skip ci]"
++                  git push
+diff --git a/.github/workflows/qi-pso.yml b/.github/workflows/qi-pso.yml
+new file mode 100644
+index 0000000..ea80903
+--- /dev/null
++++ b/.github/workflows/qi-pso.yml
+@@ -0,0 +1,44 @@
++name: QI-PSO Optimization
++
++on:
++    repository_dispatch:
++        types: [qi-pso]
++
++jobs:
++    optimize-and-report:
++        runs-on: ubuntu-latest
++        permissions:
++            contents: read
++            issues: write # Required to create the final report issue
++
++        steps:
++            - name: Checkout Repository
++              uses: actions/checkout@v4
++              with:
++                  ref: ${{ github.event.client_payload.branch }}
++
++            - name: Setup Python
++              uses: actions/setup-python@v5
++              with:
++                  python-version: "3.10"
++
++            - name: Install Dependencies
++              run: pip install numpy
++
++            - name: Run QI-PSO Optimization
++              id: qpso
++              run: |
++                  # Reads 'tca.json' and performs PSO with Interference-Aware Fitness Function.
++                  # Generates the optimal test order.
++                  # The script should output the result to a file named 'prioritization_report.md'
++                  python scripts/run_qpso.py
++
++            - name: Create Prioritization Issue
++              uses: peter-evans/create-issue-from-file@v5
++              with:
++                  title: "QI-PSO Test Case Prioritization Results"
++                  content-filepath: ./prioritization_report.md
++                  labels: |
++                      prioritization-report
++                      automated
++                  assignees: ${{ github.actor }}
