@@ -1,186 +1,327 @@
-diff --git a/.github/workflows/calc-mpltd.yml b/.github/workflows/calc-mpltd.yml
+diff --git a/scripts/calculate_amplitudes.py b/scripts/calculate_amplitudes.py
 new file mode 100644
-index 0000000..7d6562d
+index 0000000..b31d2c4
 --- /dev/null
-+++ b/.github/workflows/calc-mpltd.yml
-@@ -0,0 +1,42 @@
-+name: Calculate Amplitudes
++++ b/scripts/calculate_amplitudes.py
+@@ -0,0 +1,59 @@
++import json
++import math
++import hashlib
 +
-+on:
-+    repository_dispatch:
-+        types: [calc-mpltd]
++def calculate_phase(change_nature):
++    """
++    Maps a semantic description of change to a phase angle (0 to 2pi).
++    Uses hashing to ensure consistent mapping for similar strings.
++    """
++    if not change_nature or change_nature.lower() == "none":
++        return 0.0
++    
++    # Create a hash of the string
++    hash_object = hashlib.md5(change_nature.encode())
++    # Convert hex to int
++    hash_int = int(hash_object.hexdigest(), 16)
++    # Normalize to 0 - 2pi
++    phase = (hash_int % 360) * (math.pi / 180.0)
++    return phase
 +
-+jobs:
-+    assign-complex-amplitudes:
-+        runs-on: ubuntu-latest
-+        permissions:
-+            contents: write
++def main():
++    try:
++        with open("llm.txt", "r") as f:
++            llm_data = json.load(f)
++    except FileNotFoundError:
++        print("llm.txt not found.")
++        return
 +
-+        steps:
-+            - name: Checkout Repository
-+              uses: actions/checkout@v4
-+              with:
-+                  ref: ${{ github.event.client_payload.branch }}
++    tca_data = []
 +
-+            - name: Setup Python
-+              uses: actions/setup-python@v5
-+              with:
-+                  python-version: "3.10"
++    for test_id, metrics in llm_data.items():
++        relevance = metrics.get("relevance", 0.0)
++        complexity = metrics.get("complexity", 0.0)
++        change_nature = metrics.get("change_nature", "")
 +
-+            - name: Install Dependencies
-+              run: pip install numpy
++        # MAGNITUDE CALCULATION
++        # We fuse relevance (external risk) and complexity (internal risk)
++        # Magnitude |A| ranges from 0 to 1
++        magnitude = (relevance * 0.7) + (complexity * 0.3)
++        
++        # PHASE CALCULATION
++        # Represents the "direction" of the risk
++        phase = calculate_phase(change_nature)
 +
-+            - name: Calculate Magnitudes and Phases
-+              run: |
-+                  # Reads 'llm.txt' and calculates complex amplitudes for test cases.
-+                  # Outputs 'tca.json' which includes:
-+                  # - Magnitude: Based on risk/complexity
-+                  # - Phase: Based on change nature (for interference modeling)
-+                  python scripts/calculate_amplitudes.py
++        tca_data.append({
++            "test_id": test_id,
++            "magnitude": float(f"{magnitude:.4f}"),
++            "phase": float(f"{phase:.4f}"),
++            "original_semantics": change_nature
++        })
 +
-+            - name: Commit TCA JSON
-+              run: |
-+                  git config --global user.name 'JTopas Automation'
-+                  git config --global user.email 'automation@jtopas.local'
-+                  git add tca.json
-+                  # This commit triggers GAS to detect 'tca.json' and fire 'qi-pso'
-+                  git commit -m "chore: update tca.json [skip ci]"
-+                  git push
-diff --git a/.github/workflows/git-diff.yml b/.github/workflows/git-diff.yml
++    # Output the complex amplitudes
++    with open("tca.json", "w") as f:
++        json.dump(tca_data, f, indent=4)
++        
++    print(f"Calculated amplitudes for {len(tca_data)} test cases.")
++
++if __name__ == "__main__":
++    main()
+\ No newline at end of file
+diff --git a/scripts/prompt_gemini.py b/scripts/prompt_gemini.py
 new file mode 100644
-index 0000000..a7bc6cf
+index 0000000..a5d34b3
 --- /dev/null
-+++ b/.github/workflows/git-diff.yml
-@@ -0,0 +1,34 @@
-+name: Git Diff Extraction
++++ b/scripts/prompt_gemini.py
+@@ -0,0 +1,79 @@
++import os
++import json
++import google.generativeai as genai
 +
-+on:
-+    repository_dispatch:
-+        types: [git-diff]
++def get_file_content(filepath):
++    try:
++        with open(filepath, 'r') as f:
++            return f.read()
++    except FileNotFoundError:
++        return ""
 +
-+jobs:
-+    extract-changes:
-+        runs-on: ubuntu-latest
-+        permissions:
-+            contents: write
++def main():
++    # Configure Gemini
++    api_key = os.environ.get("GEMINI_API_KEY")
++    if not api_key:
++        raise ValueError("GEMINI_API_KEY not found in environment variables")
++    
++    genai.configure(api_key=api_key)
++    
++    # Load Context
++    diff_content = get_file_content("dff.txt")
++    test_cases_content = get_file_content("test_case.txt") # Expected list of test names
++    
++    # detailed prompt to enforce JSON structure
++    prompt = f"""
++    You are a specialized Software Engineering Assistant for Test Case Prioritization.
++    
++    Task: Analyze the following Code Changes (Git Diff) and assess the relevance of the provided Test Cases.
++    
++    CONTEXT:
++    
++    --- BEGIN GIT DIFF ---
++    {diff_content}
++    --- END GIT DIFF ---
++    
++    --- BEGIN TEST CASES ---
++    {test_cases_content}
++    --- END TEST CASES ---
++    
++    INSTRUCTIONS:
++    1. Analyze the semantic intent of the code changes.
++    2. For EACH test case listed, determine:
++       - "relevance": A float between 0.0 (irrelevant) and 1.0 (critical).
++       - "complexity": A float between 0.0 (trivial) and 1.0 (highly complex logic).
++       - "change_nature": A short string describing the type of change (e.g., "refactor_tokenizer", "bugfix_parsing", "ui_update").
++    3. OUTPUT format must be strictly a JSON object. Do not include markdown formatting.
++    
++    Example Output format:
++    {{
++        "TestTokenizerProperties": {{ "relevance": 0.8, "complexity": 0.5, "change_nature": "logic_change" }},
++        "TestDifficultSituations": {{ "relevance": 0.2, "complexity": 0.9, "change_nature": "none" }}
++    }}
++    """
++    
++    # Call Gemini
++    model = genai.GenerativeModel('gemini-3-pro-preview')
++    response = model.generate_content(prompt)
++    
++    # valid response handling
++    try:
++        # Strip markdown code blocks if present
++        clean_response = response.text.replace('```json', '').replace('```', '').strip()
++        # Validate JSON
++        json_data = json.loads(clean_response)
++        
++        # Save to llm.txt (acting as a JSON file)
++        with open("llm.txt", "w") as f:
++            json.dump(json_data, f, indent=4)
++            
++        print("Successfully generated llm.txt")
++        
++    except json.JSONDecodeError:
++        print("Failed to parse LLM response as JSON.")
++        # Fallback: write raw text for manual debugging if needed, though this breaks the pipeline
++        with open("llm.txt", "w") as f:
++            f.write(clean_response)
 +
-+        steps:
-+            - name: Checkout Repository
-+              uses: actions/checkout@v4
-+              with:
-+                  ref: ${{ github.event.client_payload.branch }}
-+                  fetch-depth: 2 # Required to compare commits
-+
-+            - name: Extract Git Diff
-+              run: |
-+                  # Extracts changes from the latest commit to a text file
-+                  # This file acts as the input for the Semantic Analysis phase
-+                  git diff HEAD^ HEAD > dff.txt
-+
-+            - name: Commit Diff Artifact
-+              run: |
-+                  git config --global user.name 'JTopas Automation'
-+                  git config --global user.email 'automation@jtopas.local'
-+                  git add dff.txt
-+                  # This commit will trigger the Google Apps Script webhook again
-+                  # The script will detect 'dff.txt' and trigger the 'prompt-llm' workflow
-+                  git commit -m "chore: update dff.txt [skip ci]"
-+                  git push
-diff --git a/.github/workflows/prompt-llm.yml b/.github/workflows/prompt-llm.yml
++if __name__ == "__main__":
++    main()
+\ No newline at end of file
+diff --git a/scripts/run_qpso.py b/scripts/run_qpso.py
 new file mode 100644
-index 0000000..b39501b
+index 0000000..d461be2
 --- /dev/null
-+++ b/.github/workflows/prompt-llm.yml
-@@ -0,0 +1,42 @@
-+name: LLM Semantic Analysis
++++ b/scripts/run_qpso.py
+@@ -0,0 +1,168 @@
++import json
++import math
++import random
++import numpy as np
 +
-+on:
-+    repository_dispatch:
-+        types: [prompt-llm]
++# --- CONFIGURATION ---
++POPULATION_SIZE = 20
++MAX_ITERATIONS = 50
++ALPHA = 0.5  # Contraction-Expansion Coefficient for QPSO
 +
-+jobs:
-+    analyze-intent:
-+        runs-on: ubuntu-latest
-+        permissions:
-+            contents: write
-+        env:
-+            GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
++def load_amplitudes():
++    with open("tca.json", "r") as f:
++        return json.load(f)
 +
-+        steps:
-+            - name: Checkout Repository
-+              uses: actions/checkout@v4
-+              with:
-+                  ref: ${{ github.event.client_payload.branch }}
++def interference_aware_fitness(permutation_indices, test_cases):
++    """
++    Calculates fitness of a test ordering.
++    Models 'Wave Function Collapse':
++    - When a test is executed, it 'observes' (resolves) risk at a specific phase.
++    - Subsequent tests with similar phases contribute less value (Destructive Interference).
++    """
++    total_fitness = 0.0
++    covered_phases = [] # List of (magnitude, phase) tuples already executed
++    
++    # We weight earlier tests higher (APFD-like time decay)
++    # Position weight: 1.0 for first test, decreasing...
++    n = len(permutation_indices)
++    
++    for rank, idx in enumerate(permutation_indices):
++        test = test_cases[idx]
++        mag = test['magnitude']
++        phase = test['phase']
++        
++        # Calculate Interference Factor
++        # If current phase is close to ANY covered phase, reduce effective magnitude
++        interference_penalty = 0.0
++        if mag > 0:
++            for cov_mag, cov_phase in covered_phases:
++                # Phase difference
++                delta_theta = abs(phase - cov_phase)
++                # Cosine similarity: 1 if identical angle, 0 if orthogonal
++                similarity = max(0, math.cos(delta_theta))
++                
++                # Penalty is proportional to how much 'energy' was already covered at this angle
++                interference_penalty += similarity * cov_mag
 +
-+            - name: Setup Python
-+              uses: actions/setup-python@v5
-+              with:
-+                  python-version: "3.10"
++        # Effective Magnitude (cannot be negative)
++        effective_mag = max(0, mag - (interference_penalty * 0.5))
++        
++        # Weighted score based on position (Early detection is better)
++        position_weight = (n - rank) / n
++        
++        total_fitness += effective_mag * position_weight
++        
++        # "Collapse" - Add this test's state to history
++        covered_phases.append((mag, phase))
++        
++    return total_fitness
 +
-+            - name: Install Dependencies
-+              run: pip install google-generativeai
++class QPSO:
++    def __init__(self, test_cases):
++        self.test_cases = test_cases
++        self.dim = len(test_cases)
++        self.pop_size = POPULATION_SIZE
++        
++        # Initialize Particles (Continuous representation of permutations)
++        # X ranges [0, dim]
++        self.X = np.random.uniform(0, self.dim, (self.pop_size, self.dim))
++        
++        # Personal Best (Pbest)
++        self.Pbest = self.X.copy()
++        self.Pbest_fitness = np.zeros(self.pop_size)
++        
++        # Global Best (Gbest)
++        self.Gbest = np.zeros(self.dim)
++        self.Gbest_fitness = -1.0
 +
-+            - name: Prompt Gemini 3.0
-+              run: |
-+                  # This script should read 'dff.txt' and output 'llm.txt'
-+                  # 'llm.txt' contains the semantic summary and relevance scoring
-+                  python scripts/prompt_gemini.py
++    def get_permutation(self, position_vector):
++        # SPV (Smallest Position Value) rule to convert continuous -> discrete
++        # Argsort returns the indices that would sort the array
++        return np.argsort(position_vector)
 +
-+            - name: Commit LLM Response
-+              run: |
-+                  git config --global user.name 'JTopas Automation'
-+                  git config --global user.email 'automation@jtopas.local'
-+                  git add llm.txt
-+                  # This commit triggers GAS to detect 'llm.txt' and fire 'calc-mpltd'
-+                  git commit -m "chore: update llm.txt [skip ci]"
-+                  git push
-diff --git a/.github/workflows/qi-pso.yml b/.github/workflows/qi-pso.yml
-new file mode 100644
-index 0000000..ea80903
---- /dev/null
-+++ b/.github/workflows/qi-pso.yml
-@@ -0,0 +1,44 @@
-+name: QI-PSO Optimization
++    def optimize(self):
++        # Evaluate initial population
++        for i in range(self.pop_size):
++            perm = self.get_permutation(self.X[i])
++            fit = interference_aware_fitness(perm, self.test_cases)
++            self.Pbest_fitness[i] = fit
++            
++            if fit > self.Gbest_fitness:
++                self.Gbest_fitness = fit
++                self.Gbest = self.X[i].copy()
++        
++        # Main Loop
++        for t in range(MAX_ITERATIONS):
++            # Mean Best Position (mbest)
++            mbest = np.mean(self.Pbest, axis=0)
++            
++            for i in range(self.pop_size):
++                # QPSO Update Equation
++                phi = np.random.rand(self.dim)
++                # p_i is local attractor
++                p = (phi * self.Pbest[i] + (1 - phi) * self.Gbest)
++                
++                u = np.random.rand(self.dim)
++                
++                # Characteristic length L
++                L = ALPHA * np.abs(mbest - self.X[i])
++                
++                # Update position
++                # X(t+1) = p +/- L * ln(1/u)
++                sign = np.where(np.random.rand(self.dim) > 0.5, 1, -1)
++                self.X[i] = p + sign * L * np.log(1 / u)
++                
++                # Boundary handling (optional, but good for stability)
++                self.X[i] = np.clip(self.X[i], 0, self.dim)
++                
++                # Evaluation
++                perm = self.get_permutation(self.X[i])
++                fit = interference_aware_fitness(perm, self.test_cases)
++                
++                if fit > self.Pbest_fitness[i]:
++                    self.Pbest_fitness[i] = fit
++                    self.Pbest[i] = self.X[i].copy()
++                    
++                    if fit > self.Gbest_fitness:
++                        self.Gbest_fitness = fit
++                        self.Gbest = self.X[i].copy()
 +
-+on:
-+    repository_dispatch:
-+        types: [qi-pso]
++        return self.get_permutation(self.Gbest)
 +
-+jobs:
-+    optimize-and-report:
-+        runs-on: ubuntu-latest
-+        permissions:
-+            contents: read
-+            issues: write # Required to create the final report issue
++def generate_report(ordered_indices, test_cases):
++    report = "# QI-PSO Test Case Prioritization Results\n\n"
++    report += "| Priority | Test Case ID | Magnitude | Phase (rad) | Semantics |\n"
++    report += "|---|---|---|---|---|\n"
++    
++    for rank, idx in enumerate(ordered_indices):
++        t = test_cases[idx]
++        report += f"| {rank+1} | {t['test_id']} | {t['magnitude']} | {t['phase']} | {t['original_semantics']} |\n"
++    
++    report += "\n\n**Algorithm Stats:**\n"
++    report += f"- Population: {POPULATION_SIZE}\n"
++    report += f"- Iterations: {MAX_ITERATIONS}\n"
++    
++    with open("prioritization_report.md", "w") as f:
++        f.write(report)
 +
-+        steps:
-+            - name: Checkout Repository
-+              uses: actions/checkout@v4
-+              with:
-+                  ref: ${{ github.event.client_payload.branch }}
++def main():
++    try:
++        test_cases = load_amplitudes()
++    except FileNotFoundError:
++        print("tca.json not found.")
++        return
++        
++    if not test_cases:
++        print("No test cases found in tca.json")
++        return
 +
-+            - name: Setup Python
-+              uses: actions/setup-python@v5
-+              with:
-+                  python-version: "3.10"
++    print(f"Starting QI-PSO optimization for {len(test_cases)} test cases...")
++    
++    optimizer = QPSO(test_cases)
++    best_order_indices = optimizer.optimize()
++    
++    generate_report(best_order_indices, test_cases)
++    print("Optimization complete. Report generated: prioritization_report.md")
 +
-+            - name: Install Dependencies
-+              run: pip install numpy
-+
-+            - name: Run QI-PSO Optimization
-+              id: qpso
-+              run: |
-+                  # Reads 'tca.json' and performs PSO with Interference-Aware Fitness Function.
-+                  # Generates the optimal test order.
-+                  # The script should output the result to a file named 'prioritization_report.md'
-+                  python scripts/run_qpso.py
-+
-+            - name: Create Prioritization Issue
-+              uses: peter-evans/create-issue-from-file@v5
-+              with:
-+                  title: "QI-PSO Test Case Prioritization Results"
-+                  content-filepath: ./prioritization_report.md
-+                  labels: |
-+                      prioritization-report
-+                      automated
-+                  assignees: ${{ github.actor }}
++if __name__ == "__main__":
++    main()
+\ No newline at end of file
