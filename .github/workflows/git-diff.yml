@@ -1,0 +1,34 @@
+name: Git Diff Extraction
+
+on:
+    repository_dispatch:
+        types: [git-diff]
+
+jobs:
+    extract-changes:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.client_payload.branch }}
+                  fetch-depth: 2 # Required to compare commits
+
+            - name: Extract Git Diff
+              run: |
+                  # Extracts changes from the latest commit to a text file
+                  # This file acts as the input for the Semantic Analysis phase
+                  git diff HEAD^ HEAD > dff.txt
+
+            - name: Commit Diff Artifact
+              run: |
+                  git config --global user.name 'JTopas Automation'
+                  git config --global user.email 'automation@jtopas.local'
+                  git add dff.txt
+                  # This commit will trigger the Google Apps Script webhook again
+                  # The script will detect 'dff.txt' and trigger the 'prompt-llm' workflow
+                  git commit -m "chore: update dff.txt [skip ci]"
+                  git push

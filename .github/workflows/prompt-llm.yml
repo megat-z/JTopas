@@ -1,0 +1,42 @@
+name: LLM Semantic Analysis
+
+on:
+    repository_dispatch:
+        types: [prompt-llm]
+
+jobs:
+    analyze-intent:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        env:
+            GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.client_payload.branch }}
+
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.10"
+
+            - name: Install Dependencies
+              run: pip install google-generativeai
+
+            - name: Prompt Gemini 3.0
+              run: |
+                  # This script should read 'dff.txt' and output 'llm.txt'
+                  # 'llm.txt' contains the semantic summary and relevance scoring
+                  python scripts/prompt_gemini.py
+
+            - name: Commit LLM Response
+              run: |
+                  git config --global user.name 'JTopas Automation'
+                  git config --global user.email 'automation@jtopas.local'
+                  git add llm.txt
+                  # This commit triggers GAS to detect 'llm.txt' and fire 'calc-mpltd'
+                  git commit -m "chore: update llm.txt [skip ci]"
+                  git push

@@ -1,0 +1,44 @@
+name: QI-PSO Optimization
+
+on:
+    repository_dispatch:
+        types: [qi-pso]
+
+jobs:
+    optimize-and-report:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            issues: write # Required to create the final report issue
+
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.client_payload.branch }}
+
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.10"
+
+            - name: Install Dependencies
+              run: pip install numpy
+
+            - name: Run QI-PSO Optimization
+              id: qpso
+              run: |
+                  # Reads 'tca.json' and performs PSO with Interference-Aware Fitness Function.
+                  # Generates the optimal test order.
+                  # The script should output the result to a file named 'prioritization_report.md'
+                  python scripts/run_qpso.py
+
+            - name: Create Prioritization Issue
+              uses: peter-evans/create-issue-from-file@v5
+              with:
+                  title: "QI-PSO Test Case Prioritization Results"
+                  content-filepath: ./prioritization_report.md
+                  labels: |
+                      prioritization-report
+                      automated
+                  assignees: ${{ github.actor }}
