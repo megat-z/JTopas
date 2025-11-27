@@ -100,8 +100,10 @@ function doPost(e) {
 				resultMsg = 'OK - Quantum-Inspired Particle Swarm Optimization Triggered';
 				break;
 			default:
-				getss(branch).appendRow([new Date(), 'Other files changed. Exiting to avoid infinite loop.', JSON.stringify(update, null, 2)]);
-				return ContentService.createTextOutput('OK - no workflow triggered.').setMimeType(ContentService.MimeType.TEXT);
+				workflow = 'git-diff';
+				logMsg = 'Extracting code changes';
+				resultMsg = 'OK - Git Diff Triggered';
+				break;
 		}
 
 		triggerDispatches(workflow, branch);
