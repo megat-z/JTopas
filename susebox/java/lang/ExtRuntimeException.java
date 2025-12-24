@@ -42,7 +42,8 @@ import java.text.MessageFormat;
 //
 
 /**
- * Implementation of the ExceptionList interface for the JDK RuntimeException.
+ * Implementation of the {@link ExceptionList} interface for the well-knwon JDK 
+ * {@link java.lang.RuntimeException}.
  *
  * @version	1.00, 2001/06/26
  * @author 	Heiko Blau
@@ -56,10 +57,8 @@ public class ExtRuntimeException
   //
   
   /**
-   * Method to traverse the exception list. By convention, <CODE>nextException</CODE>
-   * returns the "earlier" exception. By walking down the exception list one gets the
-   * the following meaning:<br>
-   * this happened because nextException happened because nextException happened...
+   * Method to traverse the exception list. See {@link ExceptionList#nextException}
+   * for details.
    *
    * @return the "earlier" exception
    */
@@ -76,6 +75,28 @@ public class ExtRuntimeException
    */
   public boolean isWrapperException() {
     return _isWrapper;
+  }
+  
+  /**
+   * Getting the format string of a exception message. This can also be the 
+   * message itself if there are no arguments.
+   *
+   * @return  the format string being used by {@link java.text.MessageFormat}
+   * @see     #getArguments
+   */
+  public String getFormat() {
+    return super.getMessage();
+  }
+  
+  /**
+   * Retrieving the arguments for message formats. These arguments are used by
+   * the {@link java.text.MessageFormat#format} call.
+   *
+   * @return  the arguments for a message format
+   * @see     #getFormat
+   */
+  public Object[] getArguments() {
+    return _args;
   }
   
   
@@ -151,10 +172,16 @@ public class ExtRuntimeException
    * @param fmt   exception message
    * @param args  arguments for the given format string
    */
-  public ExtRuntimeException(Exception ex, String msg, Object[] args) {
-    super(msg);
-    _next      = ex;
-    _isWrapper = true;
+  public ExtRuntimeException(Exception ex, String fmt, Object[] args) {
+    super(fmt);
+   
+    if (ex != null && fmt == null) {
+      _isWrapper = true;
+    } else {
+      _isWrapper = false;
+    }
+    _next = ex;
+    _args = args;
   }
   
   
@@ -163,37 +190,35 @@ public class ExtRuntimeException
   //
   
   /**
-   * Implementation of the standard {@link java.Throwable#getMessage} method to
-   * meet the requirements of formats and format arguments as well as wrapper
-   * exceptions.
-   * If this is a wrapper exception then the <CODE>getMessage</CODE> of the wrapped
-   * exception is returned.
-   * If no arguments were given in the constructor then the format parameter is
-   * taken as the formatted message itself. Otherwise it is treated like the
-   * patter for the {@link java.text.MessageFormat#format} method.
+   * Implementation of the standard {@link java.Throwable#getMessage} method. It
+   * delegates the call to the central {@link ExceptionMessageFormatter#getMessage}
+   * method.
    *
    * @return  the formatted exception message
-   * @see     java.text.MessageFormat
+   * @see     ExceptionMessageFormatter
    */
   public String getMessage() {
-    if (isWrapperException()) {
-      return nextException().getMessage();
-    } else {
-      String fmt = super.getMessage();
-      
-      if (_args == null) {
-        return fmt;
-      } else {
-        return MessageFormat.format(fmt, _args);
-      }
-    }
+    return ExceptionMessageFormatter.getMessage(this);
   }
-  
   
   //---------------------------------------------------------------------------
   // members
   //
+  
+  /**
+   * the parameters to be used when formatting the exception message
+   */
   protected Object[]  _args       = null;
+
+  /**
+   * The wrapped, nested of next exception.
+   */
   protected Exception _next       = null;
+  
+  /**
+   * If <code>true</code> this is only a wrapper exception with the real one
+   * being returned by {@link #nextException}, <code>false</code> for standalone, 
+   * nested or subsequent exceptions
+   */
   protected boolean   _isWrapper  = false;
 }

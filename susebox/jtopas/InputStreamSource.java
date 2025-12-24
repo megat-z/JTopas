@@ -70,8 +70,8 @@ public class InputStreamSource implements TokenizerSource {
    * A basic method to supply data to a {@link de.susebox.java.util.Tokenizer}.
    *
    * @param cbuf      buffer to receive data
-   * @param offset    position from where the data should be inserted in <CODE>cbuf</CODE>
-   * @param maxChars  maximum number of characters to be read into <CODE>cbuf</CODE>
+   * @param offset    position from where the data should be inserted in <code>cbuf</code>
+   * @param maxChars  maximum number of characters to be read into <code>cbuf</code>
    * @return actually read characters or -1 on an end-of-file condition
    * @throws Exception anything that could happen during read, most likely {@link java.io.IOException}
    */
@@ -107,7 +107,7 @@ public class InputStreamSource implements TokenizerSource {
 
   /**
    * Constructor that takes a instantiated {@link java.io.Reader}. If 
-   * <CODE>null</CODE> is given then standard input is used (see {@link java.lang.System#in}).
+   * <code>null</code> is given then standard input is used (see {@link java.lang.System#in}).
    *
    * @param Reader   input stream to be used for reading
    * @see   java.io.Reader
@@ -119,9 +119,9 @@ public class InputStreamSource implements TokenizerSource {
   /**
    * Constructor that takes a instantiated {@link java.io.Reader} and the
    * tokenizer control flags.
-   * If <CODE>null</CODE> is given for the stream then standard input is used 
+   * If <code>null</code>> is given for the stream then standard input is used 
    * (see {@link java.lang.System#in}).
-   * For the tokenizer control flags use a combination of the <CODE>F_...</CODE>
+   * For the tokenizer control flags use a combination of the <code>F_...</code>
    * constants from the {@link Tokenizer} for this parameter.
    *
    * @param reader   input stream to be used for reading
@@ -166,5 +166,9 @@ public class InputStreamSource implements TokenizerSource {
   //---------------------------------------------------------------------------
   // Members
   //
+  
+  /**
+   * The {@link java.io.Reader} instance that does the actual reading.
+   */
   protected Reader _reader = null;
 }

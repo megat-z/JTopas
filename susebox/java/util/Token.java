@@ -54,23 +54,23 @@ public class Token {
   /**
    * The token is nothing special (no keyword, no whitespace, etc.).
    */  
-  public static final int NORMAL = 0;
+  public static final byte NORMAL = 0;
 
   /**
    * The token is a keyword registered with the used {@link Tokenizer}.
    */  
-  public static final int KEYWORD = 1;
+  public static final byte KEYWORD = 1;
 
   /**
    * The token is one of the quoted strings known to the {@link Tokenizer}. In Java
    * this would be for instance a "String" or a 'c' (haracter).
    */  
-  public static final int STRING = 2;
+  public static final byte STRING = 2;
   
   /**
    * If a {@link Tokenizer} recognizes numbers, this token is one.
    */  
-  public static final int NUMBER = 3;
+  public static final byte NUMBER = 3;
   
   /**
    * Special sequences are characters or character combinations that have a certain
@@ -79,14 +79,14 @@ public class Token {
    * A companion might have been associated with a special sequence. It probably
    * contains information important to the user of the <CODE>Token</CODE>.
    */  
-  public static final int SPECIAL_SEQUENCE = 4;
+  public static final byte SPECIAL_SEQUENCE = 4;
   
   /** 
    * Separators are otherwise not remarkable characters. An opening parenthesis 
    * might be nessecary for a syntactically correct text, but without any special 
    * meaning to the compiler, interpreter etc. after it has been detected.
    */  
-  public static final int SEPARATOR = 5;
+  public static final byte SEPARATOR = 5;
   
   /** 
    * Whitespaces are portions of the text, that contain one or more characters 
@@ -94,31 +94,31 @@ public class Token {
    * whitespaces is equally represented by one single whitespace character. That 
    * is the difference to separators.
    */  
-  public static final int WHITESPACE = 6;
+  public static final byte WHITESPACE = 6;
 
   /**
    * Although a line comment is - in most cases - actually a whitespace sequence, it
    * is often nessecary to handle it separately. Syntax hilighting is a thing that
    * needs to know a line comment.
    */  
-  public static final int LINE_COMMENT = 7;
+  public static final byte LINE_COMMENT = 7;
 
   /**
    * Block comments are also a special form of a whitespace sequence. See 
    * {@link #LINE_COMMENT} for details.
    */  
-  public static final int BLOCK_COMMENT = 8;
+  public static final byte BLOCK_COMMENT = 8;
 
   /**
    * A token of the type <CODE>EOF</CODE> is used to indicate an end-of-line condition
    * on the input stream of the tokenizer.
    */  
-  public static final int EOF = -1;
+  public static final byte EOF = -1;
   
   /**
    * This is for the leftovers of the lexical analysis of a text.
    */  
-  public static final int UNKNOWN = -2;
+  public static final byte UNKNOWN = -2;
     
 
   //---------------------------------------------------------------------------

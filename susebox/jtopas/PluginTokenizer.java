@@ -164,6 +164,33 @@ public class PluginTokenizer extends AbstractTokenizer {
   
   
   /**
+   * Setting a new {@link KeywordHandler} or removing any previously installed
+   * one. If <code>null</code> is passed (installed handler removed), the 
+   * tokenizer will fall back to the base implementation.
+   *
+   * @param handler   the (new) {@link KeywordHandler} to use or null to remove it
+   */
+  public void setKeywordHandler(KeywordHandler handler) {
+    if ((_keywordHandler = handler) != null) {
+      _keywordHandler.setTokenizer(this);
+    }
+  }
+  
+  /**
+   * Retrieving the current {@link KeywordHandler}. The method may return
+   * <code>null</code> if there isn't any handler installed. That does not
+   * mean, that keywords are not dealt with. Keyword detection is done by the 
+   * base method of {@link de.susebox.java.util.AbstractTokenizer} in that case.
+   *
+   * @return  the currently active whitespace keyword or null, if the base
+   *          implementation is working
+   */
+  public KeywordHandler getKeywordHandler() {
+    return _keywordHandler;
+  }
+  
+  
+  /**
    * Setting a new {@link WhitespaceHandler} or removing any previously installed
    * <code>WhitespaceHandler</code>. If <code>null</code> is passed, the tokenizer
    * will fall back to the base implementation.
@@ -247,6 +274,26 @@ public class PluginTokenizer extends AbstractTokenizer {
   //---------------------------------------------------------------------------
   // Overridden methods of AbstractTokenizer
   //
+  
+  /**
+   * This method checks if the character sequence starting at a given position
+   * with a given lenght is a keyword. If so, it returns the keyword description
+   * as {@link TokenizerProperty} object.
+   * If the method needs to build a string from the character sequence it may
+   * use {@link #getText} or {@link #getTextUnchecked} to retrieve it.
+   *
+   * @param   startingAtPos check at this position
+   * @param   length        the candidate has this number of characters
+   * @return  {@link TokenizerProperty} describing the keyword or <code>null</code>
+   */
+  protected TokenizerProperty isKeyword(int startingAtPos, int length) {
+    if (_keywordHandler != null) {
+      return _keywordHandler.isKeyword(startingAtPos, length);
+    } else {
+      return super.isKeyword(startingAtPos, length);
+    }
+  }
+    
   
   /**
    * This method checks if the character is a whitespace. It will use an installed
@@ -354,4 +401,5 @@ public class PluginTokenizer extends AbstractTokenizer {
   private WhitespaceHandler _whitespaceHandler = null;
   private SeparatorHandler  _separatorHandler  = null;
   private SequenceHandler   _sequenceHandler   = null;
+  private KeywordHandler    _keywordHandler    = null;
 }

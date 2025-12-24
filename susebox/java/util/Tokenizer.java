@@ -196,7 +196,7 @@ public interface Tokenizer
    * Without this flag, comparison is done like in Java or C/C++. When the flag 
    * is set, the tokenizer compares tokens like in HTML or PL/SQL.
    */
-  public static final int F_NO_CASE               = 0x0001;
+  public static final short F_NO_CASE               = 0x0001;
 
   /**
    * In case that the <CODE>F_NO_CASE</CODE> flag is set, this flag is used to
@@ -204,7 +204,7 @@ public interface Tokenizer
    * The combination between <CODE>F_NO_CASE</CODE> and <CODE>F_KEYWORDS_CASE</CODE>
    * means, that keywords are case-sensitive but everything else is not.
    */
-  public static final int F_KEYWORDS_CASE         = 0x0002;
+  public static final short F_KEYWORDS_CASE         = 0x0002;
   
   /**
    * In case that the <CODE>F_NO_CASE</CODE> flag is not set, this flag is used 
@@ -212,44 +212,44 @@ public interface Tokenizer
    * The flag <CODE>F_KEYWORDS_NO_CASE</CODE> means, that keywords are not 
    * case-sensitive but everything else is.
    */
-  public static final int F_KEYWORDS_NO_CASE      = 0x0004;
+  public static final short F_KEYWORDS_NO_CASE      = 0x0004;
   
   /**
    * In many cases, parsers are not interested in whitespaces. If You are, use
    * this flag to force the tokenizer to return whitespace sequences as a token.
    */
-  public static final int F_RETURN_WHITESPACES    = 0x0008;
+  public static final short F_RETURN_WHITESPACES    = 0x0008;
   
   /**
    * For perfomance and memory reasons, this flag is used to avoid copy operations
    * for every token. The token image itself is not returned in a {@link Token}
    * instance, only its position and length in the input stream.
    */
-  public static final int F_TOKEN_POS_ONLY        = 0x0010;
+  public static final short F_TOKEN_POS_ONLY        = 0x0010;
 
   /**
    * Set this flag to let the tokenizer buffer all data. Normally, a tokenizer
    * keeps only a certain amount of periodically changing data in its internal 
    * buffer.
    */
-  public static final int F_KEEP_DATA             = 0x0020;
+  public static final short F_KEEP_DATA             = 0x0020;
 
   /**
    * Tells the tokenizer to count lines and columns. The tokenizer may use
    * System.getProperty("line.separator") to obtain the end-of-line sequence.
    */
-  public static final int F_COUNT_LINES           = 0x0040;
+  public static final short F_COUNT_LINES           = 0x0040;
 
   /**
    * Nested block comments are normally not allowed. This flag changes the 
    * default behaviour
    */
-  public static final int F_ALLOW_NESTED_COMMENTS = 0x0080;
+  public static final short F_ALLOW_NESTED_COMMENTS = 0x0080;
   
   /**
    * With this flag, the tokenizer tries to identify numbers.
    */
-  public static final int F_PARSE_NUMBERS         = 0x0100;
+  public static final short F_PARSE_NUMBERS         = 0x0100;
 
 
   //---------------------------------------------------------------------------

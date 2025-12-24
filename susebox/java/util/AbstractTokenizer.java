@@ -1268,6 +1268,25 @@ __MAIN_LOOP__:
     return new String(_inputBuffer, start - _rangeStart, len);
   }
   
+
+  /**
+   * Retrieve text from the currently available range. The start and length
+   * parameters must be inside {@link #getRangeStart} and
+   * <CODE>getRangeStart + {@link #currentlyAvailable}</CODE>. 
+   *<br>
+   * In contrast to the {@link #getText} method this one does not check for 
+   * correct parameters. Two situations may arise:<br> 
+   *   an {@link java.util.IndexOutOfBoundsException may occure<br>
+   *   uninitialized data may be retrieved
+   *
+   * @param   start   position where the text begins
+   * @param   len     length of the text
+   * @return  the text beginning at the given position ith the given length
+   */
+  public String getTextUnchecked(int start, int len) {
+    return new String(_inputBuffer, start - _rangeStart, len);
+  }
+  
   /**
    * Get a single character from the current text range.
    *
@@ -1516,6 +1535,40 @@ __MAIN_LOOP__:
     return prop;
   }
 
+
+  /**
+   * This method checks if the character sequence starting at a given position
+   * with a given lenght is a keyword. If so, it returns the keyword description
+   * as {@link TokenizerProperty} object.
+   *<br>
+   * If the method needs to build a string from the character sequence it may
+   * use {@link #getText} or {@link #getTextUnchecked} to retrieve it.
+   *<br>
+   * This method is should be overwritten by derived classes having their own
+   * keyword handling.
+   *
+   * @param   startingAtPos   check at this position
+   * @param   length          the candidate has this number of characters
+   * @return  {@link TokenizerProperty} describing the keyword or <code>null</code>
+   */
+  protected TokenizerProperty isKeyword(int startingAtPos, int length) {
+    TokenizerProperty prop = null;
+    
+    // test on keyword
+    if (_keywords[0] != null || _keywords[1] != null) {
+      String            keyword = new String(_inputBuffer, startingAtPos - _rangeStart, length);
+      
+      if (_keywords[0] != null) {
+        prop = (TokenizerProperty)_keywords[0].get(keyword);
+      }
+      if (prop == null && _keywords[1] != null) {
+        keyword = keyword.toUpperCase();
+        prop    = (TokenizerProperty)_keywords[1].get(keyword);
+      }
+    }
+    return prop;
+  }
+  
   
   //---------------------------------------------------------------------------
   // Implementation
@@ -1704,29 +1757,15 @@ __MAIN_LOOP__:
     }
     
     // test on keyword
-    if (_keywords[0] != null || _keywords[1] != null) {
-      TokenizerProperty prop    = null;
-      String            keyword = new String(_inputBuffer, _currentReadPos, len);
-      
-      if (_keywords[0] != null) {
-        prop = (TokenizerProperty)_keywords[0].get(keyword);
-      }
-      if (prop == null && _keywords[1] != null) {
-        keyword = keyword.toUpperCase();
-        prop    = (TokenizerProperty)_keywords[1].get(keyword);
-      }
-      if (prop != null) {
-        token.setType(Token.KEYWORD); 
-        token.setLength(keyword.length());
-        token.setCompanion(prop.getCompanion());
-      } else {
-        token.setType(Token.NORMAL);
-        token.setLength(len);
-      }
+    TokenizerProperty prop = isKeyword(_currentReadPos + _rangeStart, len);
+    
+    if (prop != null) {
+      token.setType(Token.KEYWORD); 
+      token.setCompanion(prop.getCompanion());
     } else {
       token.setType(Token.NORMAL);
-      token.setLength(len);
     }
+    token.setLength(len);
     return true;
   }
   

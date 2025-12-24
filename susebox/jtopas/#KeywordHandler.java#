@@ -1,7 +1,7 @@
 /*
- * Plugin.java: Plugin for the PluginTokenizer.
+ * KeywordHandler.java: Pluggin for the PluginTokenizer.
  *
- * Copyright (C) 2001 Heiko Blau
+ * Copyright (C) 2002 Heiko Blau
  *
  * This file belongs to the JTopas Library.
  * JTopas is free software; you can redistribute it and/or modify it 
@@ -30,29 +30,48 @@
 
 package de.susebox.jtopas;
 
+//-----------------------------------------------------------------------------
+// Imports
+//
+import de.susebox.java.util.TokenizerProperty;
+import de.susebox.java.util.TokenizerException;
+
 
 //-----------------------------------------------------------------------------
-// Interface Plugin
+// Interface KeywordHandler
 //
 
 /**<p>
- * This is the base interface for all handler pluggins in the {@link PluginTokenizer}.
- * Since generally plugins need to know their parent <code>Tokenizer</code>, this
- * interface is provided to pass that instance to the plugin.
+ * This interface must be implemented by classes that should be used as a 
+ * keyword handler plugin in the {@link PluginTokenizer}.
  *</p>
  *
  * @see     de.susebox.java.util.Tokenizer
  * @see     de.susebox.java.util.AbstractTokenizer
  * @author  Heiko Blau
  */
-public interface Plugin {
+public interface KeywordHandler extends Plugin {
   
   /**
-   * When registering an instance that implements this interface, the 
-   * {@link PluginTokenizer} will call this method to make itself known to
-   * the <code>SeparatorHandler</code> instance in turn.
+   * This method checks if the character sequence starting at a given position
+   * with a given length is a keyword. If so, it returns the keyword description
+   * as {@link TokenizerProperty} object.
+   * If the method needs to build a string from the character sequence it may
+   * use {@link #getText} or {@link #getTextUnchecked} to retrieve it.
    *
-   * @param tokenizer   the controlling {@link PluginTokenizer}
+   * @param   startingAtPos   check at this position
+   * @param   length          number of characters in the token to be tested
+   * @return  {@link TokenizerProperty} describing the keyword or <code>null</code>
    */
-  public void setTokenizer(PluginTokenizer tokenizer);
+  public TokenizerProperty isKeyword(int startingAtPos, int length); 
 }
+
+
+
+
+
+
+
+
+
+
