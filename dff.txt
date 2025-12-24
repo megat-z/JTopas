@@ -1126,4 +1126,3 @@ index 7622f08..a38f6b8 100644
    private SequenceHandler   _sequenceHandler   = null;
 +  private KeywordHandler    _keywordHandler    = null;
  }
- 
