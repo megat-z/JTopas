@@ -15,20 +15,50 @@ jobs:
               uses: actions/checkout@v4
               with:
                   ref: ${{ github.event.client_payload.branch }}
-                  fetch-depth: 2 # Required to compare commits
+                  fetch-depth: 10
 
-            - name: Extract Git Diff
+            - name: Extract Git Diff (Benchmark Search)
+              shell: bash
               run: |
-                  # Extracts changes from the latest commit to a text file
-                  # This file acts as the input for the Semantic Analysis phase
-                  git diff HEAD^ HEAD > dff.txt
+                  # 1. Search for the specific benchmark commits
+                  echo "Searching history for 'Commit 1' or 'Commit 2'..."
+
+                  TARGET_COMMIT=""
+
+                  for i in {0..9}; do
+                    # Get the commit message subject for HEAD~i
+                    MSG=$(git log -1 --format="%s" HEAD~$i)
+                    
+                    if [[ "$MSG" == "Commit 1" || "$MSG" == "Commit 2" ]]; then
+                      echo "✅ Found benchmark checkpoint at HEAD~$i: '$MSG'"
+                      TARGET_COMMIT="HEAD~$i"
+                      break
+                    fi
+                  done
+
+                  # 2. Generate Diff or Fail
+                  if [ -z "$TARGET_COMMIT" ]; then
+                    echo "⚠️  Could not find 'Commit 1' or 'Commit 2' in the last 20 commits."
+                    echo "No benchmark commit found"
+                  else
+                    echo "📝 Extracting diff for commit $TARGET_COMMIT..."
+                    # We exclude artifact files just in case, but primarily rely on the specific commit selection
+                    git diff ${TARGET_COMMIT}^ ${TARGET_COMMIT} -- . ':!dff.txt' ':!llm.txt' ':!tca.json' ':!prioritization_report.md' > dff.txt
+                  fi
+
+                  echo "Diff size: $(wc -c < dff.txt) bytes"
 
             - name: Commit Diff Artifact
               run: |
                   git config --global user.name 'JTopas Automation'
                   git config --global user.email 'automation@jtopas.local'
+
                   git add dff.txt
-                  # This commit will trigger the Google Apps Script webhook again
-                  # The script will detect 'dff.txt' and trigger the 'prompt-llm' workflow
-                  git commit -m "chore: update dff.txt [skip ci]"
-                  git push
+
+                  if git diff --staged --quiet; then
+                    echo "No changes to dff.txt. Skipping commit."
+                  else
+                    git commit -m "chore: update dff.txt [skip ci]"
+                    git pull origin ${{ github.event.client_payload.branch }} --rebase
+                    git push origin ${{ github.event.client_payload.branch }}
+                  fi
