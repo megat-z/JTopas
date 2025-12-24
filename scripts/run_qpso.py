@@ -200,7 +200,7 @@ class DiscretePhasePSO:
 def generate_report(best_sequence, tc_map, n):
     report = "# Discrete Phase PSO Prioritization Results\n\n"
     report += "| Priority | Test Case ID | Amplitude | Frequency | Phase (rad) |\n"
-    report += "|---|---|---|---|\n"
+    report += "|---|---|---|---|---|\n"
     
     for rank, tid in enumerate(best_sequence):
         t = tc_map[tid]
