@@ -6,7 +6,7 @@ import copy
 
 # --- CONFIGURATION ---
 MAX_ITERATIONS = 50
-LEARNING_RATE = 0.6  # Probability of adjusting a position to match gBest per cycle
+LEARNING_RATE = 0.4  # Probability of adjusting a position to match gBest per cycle
 
 def load_data():
     """
@@ -73,11 +73,11 @@ def interference_aware_fitness(permutation, test_cases_lookup):
             
         # Calculate Energy at this time step
         # We just sum raw values, negatives cancel positives (Destructive).
-        total_energy += current_superposition
+        # total_energy += current_superposition
         
         # If we square the result because we want only "Constructive Interference" (High Energy).
         # Maximizing (Sum^2) finds the order where peaks align best.
-        # total_energy += (current_superposition ** 2)
+        total_energy += (current_superposition ** 2)
 
     return total_energy
 
