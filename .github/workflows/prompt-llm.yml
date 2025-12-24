@@ -24,7 +24,7 @@ jobs:
                   python-version: "3.11"
 
             - name: Install Dependencies
-              run: pip install google-generativeai
+              run: pip install google-genai pydantic
 
             - name: Prompt Gemini 3.0
               run: |
