@@ -1,0 +1,30 @@
+{
+    "de.susebox.java.util.TestTokenizerProperties": {
+        "relevance": 9.0,
+        "complexity": 6.0
+    },
+    "de.susebox.java.util.TestTokenProperties": {
+        "relevance": 9.0,
+        "complexity": 3.0
+    },
+    "de.susebox.java.util.TestInputStreamTokenizer": {
+        "relevance": 7.0,
+        "complexity": 5.0
+    },
+    "de.susebox.java.util.TestDifficultSituations": {
+        "relevance": 9.0,
+        "complexity": 8.0
+    },
+    "de.susebox.java.util.TestEmbeddedTokenizer": {
+        "relevance": 6.0,
+        "complexity": 5.0
+    },
+    "de.susebox.jtopas.TestPluginTokenizer": {
+        "relevance": 10.0,
+        "complexity": 8.0
+    },
+    "de.susebox.jtopas.TestTokenizerSpeed": {
+        "relevance": 8.0,
+        "complexity": 7.0
+    }
+}
