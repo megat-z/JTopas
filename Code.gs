@@ -30,7 +30,7 @@ function triggerDispatches(url, event, branch) {
   const pat = getConfig();
   if (!pat ) return getss(branch).appendRow([new Date(), "FATAL: Missing GITHUB_PAT in script properties."]);
   try {
-    const response = UrlFetchApp.fetch(url + 'dispatches', {
+    const response = UrlFetchApp.fetch(url + '/dispatches', {
       method: 'post',
       contentType: 'application/json',
       headers: {
@@ -74,15 +74,10 @@ function doPost(e) {
     switch (true) {
       case detectFile(update, 'dff.txt'):
         workflow = 'prompt-llm';
-        logMsg = "Prompting Gemini 3.0";
+        logMsg = "Prompting LLM";
         resultMsg = "OK - Prompt LLM Triggered";
         break;
       case detectFile(update, 'llm.txt'):
-        workflow = 'calc-mpltd';
-        logMsg = "Calculating amplitudes";
-        resultMsg = "OK - Calculate Amplitude Triggered";
-        break;
-      case detectFile(update, 'tca.json'):
         workflow = 'qi-pso';
         logMsg = "Prioritizing test cases";
         resultMsg = "OK - Quantum-Inspired Particle Swarm Optimization Triggered";

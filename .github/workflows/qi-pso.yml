@@ -9,7 +9,7 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: read
-            issues: write # Required to create the final report issue
+            issues: write
 
         steps:
             - name: Checkout Repository
@@ -28,7 +28,7 @@ jobs:
             - name: Run QI-PSO Optimization
               id: qpso
               run: |
-                  # Reads 'tca.json' and performs PSO with Interference-Aware Fitness Function.
+                  # Performs PSO with Interference-Aware Fitness Function.
                   # Generates the optimal test order.
                   # The script should output the result to a file named 'prioritization_report.md'
                   python scripts/run_qpso.py

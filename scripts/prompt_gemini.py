@@ -23,11 +23,8 @@ def main():
     
     # detailed prompt to enforce JSON structure
     prompt = f"""
-    You are a specialized Software Engineering Assistant for Test Case Prioritization.
-    
-    Task: Analyze the following Code Changes (Git Diff) and assess the relevance of the provided Test Cases.
-    
-    CONTEXT:
+    You are a specialized Software Engineering Assistant for Software Testing.
+    Analyze the following Code Changes and assess the relevance of each provided Test Case.
     
     --- BEGIN GIT DIFF ---
     {diff_content}
@@ -38,18 +35,17 @@ def main():
     --- END TEST CASES ---
     
     INSTRUCTIONS:
-    1. Analyze the semantic intent of the code changes.
+    1. Analyze each test case with respect to the code changes.
     2. For EACH test case listed, determine:
        - "relevance": A float between 0.0 (irrelevant) and 1.0 (critical).
        - "complexity": A float between 0.0 (trivial) and 1.0 (highly complex logic).
-       - "change_nature": A short string describing the type of change (e.g., "refactor_tokenizer", "bugfix_parsing", "ui_update").
     3. OUTPUT format must be strictly a JSON object. Do not include markdown formatting.
     
     Example Output format:
-    {{
-        "TestTokenizerProperties": {{ "relevance": 0.8, "complexity": 0.5, "change_nature": "logic_change" }},
-        "TestDifficultSituations": {{ "relevance": 0.2, "complexity": 0.9, "change_nature": "none" }}
-    }}
+    {
+        "Test 1": { "relevance": 0.8, "complexity": 0.5 },
+        "Test 2": { "relevance": 0.2, "complexity": 0.9 }
+    }
     """
     
     # Call Gemini
@@ -71,7 +67,7 @@ def main():
         
     except json.JSONDecodeError:
         print("Failed to parse LLM response as JSON.")
-        # Fallback: write raw text for manual debugging if needed, though this breaks the pipeline
+        # Fallback: write raw text for manual debugging, though this breaks the pipeline
         with open("llm.txt", "w") as f:
             f.write(clean_response)
 
