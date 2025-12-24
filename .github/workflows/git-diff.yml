@@ -1,64 +1,78 @@
 name: Git Diff Extraction
 
 on:
-    repository_dispatch:
-        types: [git-diff]
+  repository_dispatch:
+    types: [git-diff]
 
 jobs:
-    extract-changes:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
+  extract-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
-        steps:
-            - name: Checkout Repository
-              uses: actions/checkout@v4
-              with:
-                  ref: ${{ github.event.client_payload.branch }}
-                  fetch-depth: 10
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.branch }}
+          fetch-depth: 15 # Fetch enough depth to find the history
 
-            - name: Extract Git Diff (Benchmark Search)
-              shell: bash
-              run: |
-                  # 1. Search for the specific benchmark commits
-                  echo "Searching history for 'Commit 1' or 'Commit 2'..."
+      - name: Validate and Extract Diff
+        shell: bash
+        run: |
+          # 1. Verify HEAD is 'Commit 2'
+          CURRENT_MSG=$(git log -1 --format="%s" HEAD)
+          echo "Current Commit Message: '$CURRENT_MSG'"
 
-                  TARGET_COMMIT=""
+          if [[ "$CURRENT_MSG" != "Commit 2" ]]; then
+            echo "❌ Error: The latest commit is not 'Commit 2'. Aborting."
+            exit 1
+          fi
+          echo "✅ HEAD validation passed."
 
-                  for i in {0..9}; do
-                    # Get the commit message subject for HEAD~i
-                    MSG=$(git log -1 --format="%s" HEAD~$i)
-                    
-                    if [[ "$MSG" == "Commit 1" || "$MSG" == "Commit 2" ]]; then
-                      echo "✅ Found benchmark checkpoint at HEAD~$i: '$MSG'"
-                      TARGET_COMMIT="HEAD~$i"
-                      break
-                    fi
-                  done
+          # 2. Find the most recent 'Commit 1' in the last 10 commits
+          BENCHMARK_HASH=""
+          
+          echo "Searching history for 'Commit 1'..."
+          
+          # Loop through HEAD~1 to HEAD~10
+          for i in {1..10}; do
+            # Get hash and message of the ancestor commit
+            HASH=$(git rev-parse HEAD~$i)
+            MSG=$(git log -1 --format="%s" $HASH)
 
-                  # 2. Generate Diff or Fail
-                  if [ -z "$TARGET_COMMIT" ]; then
-                    echo "⚠️  Could not find 'Commit 1' or 'Commit 2' in the last 20 commits."
-                    echo "No benchmark commit found"
-                  else
-                    echo "📝 Extracting diff for commit $TARGET_COMMIT..."
-                    # We exclude artifact files just in case, but primarily rely on the specific commit selection
-                    git diff ${TARGET_COMMIT}^ ${TARGET_COMMIT} -- . ':!dff.txt' ':!llm.txt' ':!tca.json' ':!prioritization_report.md' > dff.txt
-                  fi
+            if [[ "$MSG" == "Commit 1" ]]; then
+              echo "✅ Found benchmark 'Commit 1' at HEAD~$i ($HASH)"
+              BENCHMARK_HASH=$HASH
+              break
+            fi
+          done
 
-                  echo "Diff size: $(wc -c < dff.txt) bytes"
+          # 3. Generate Diff (Commit 1 -> Commit 2)
+          if [ -z "$BENCHMARK_HASH" ]; then
+            echo "⚠️ Could not find 'Commit 1' within the last 10 commits."
+            exit 1
+          else
+            echo "📝 Extracting diff between $BENCHMARK_HASH (Commit 1) and HEAD (Commit 2)..."
+            
+            # Diff changes FROM benchmark TO head
+            git diff $BENCHMARK_HASH HEAD -- . ':!dff.txt' ':!llm.txt' ':!tca.json' ':!prioritization_report.md' > dff.txt
+            
+            echo "Diff generated successfully."
+            echo "Diff size: $(wc -c < dff.txt) bytes"
+          fi
 
-            - name: Commit Diff Artifact
-              run: |
-                  git config --global user.name 'JTopas Automation'
-                  git config --global user.email 'automation@jtopas.local'
+      - name: Commit Diff Artifact
+        run: |
+          git config --global user.name 'JTopas Automation'
+          git config --global user.email 'automation@jtopas.local'
 
-                  git add dff.txt
+          git add dff.txt
 
-                  if git diff --staged --quiet; then
-                    echo "No changes to dff.txt. Skipping commit."
-                  else
-                    git commit -m "chore: update dff.txt [skip ci]"
-                    git pull origin ${{ github.event.client_payload.branch }} --rebase
-                    git push origin ${{ github.event.client_payload.branch }}
-                  fi
+          if git diff --staged --quiet; then
+            echo "No changes to dff.txt. Skipping commit."
+          else
+            git commit -m "chore: update dff.txt [skip ci]"
+            git pull origin ${{ github.event.client_payload.branch }} --rebase
+            git push origin ${{ github.event.client_payload.branch }}
+          fi

@@ -37,6 +37,6 @@ jobs:
                   git config --global user.name 'JTopas Automation'
                   git config --global user.email 'automation@jtopas.local'
                   git add llm.txt
-                  # This commit triggers GAS to detect 'llm.txt' and fire 'calc-mpltd'
+                  # This commit triggers GAS to detect 'llm.txt' and run 'qi-pso'
                   git commit -m "chore: update llm.txt [skip ci]"
                   git push
