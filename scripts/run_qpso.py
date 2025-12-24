@@ -39,46 +39,39 @@ def calculate_phase(rank, n):
     Rank is 0-indexed (0 to n-1).
     Result is in (0, PI].
     """
-    return ((rank + 1) / n) * math.pi
+    if n == 0: return 0
+    return (rank / n) * 2 * math.pi
 
 def interference_aware_fitness(permutation, test_cases_lookup):
     """
     Calculates fitness by simulating the Superposition of Waves.
-    
-    The 'Permutation' (Order) determines the PHASE of each test case.
     We sum the waves at time steps t=1 to N.
     """
     
-    # 1. Configuration
     # We evaluate the wave over a time window equal to the number of tests
     time_steps = len(permutation) 
     total_energy = 0.0
     
-    # 2. Loop through Time (t=1, t=2...)
+    # Loop through Time (t=1, t=2...)
     for t in range(1, time_steps + 1):
         current_superposition = 0.0
         
-        # 3. Sum the waves for ALL test cases at this specific time 't'
+        # Sum the waves for ALL test cases at this specific time 't'
         for position_index, test_id in enumerate(permutation):
             test_case = test_cases_lookup[test_id]
             
             A = test_case['amplitude']  # Relevance
             w = test_case['frequency']  # Complexity
             
-            # KEY: The Order determines the Phase
-            # Position 0 -> Phase 1, Position 1 -> Phase 2...
-            phi = position_index + 1 
+            phi = calculate_phase(position_index, time_steps) 
             
             # Calculate individual wave: A * cos(w*t + phi)
-            # Note: math.cos takes radians. If your phases 1,2,3 are raw units, 
-            # we use them directly. If they are degrees, use math.radians(phi).
-            # Assuming raw integer steps based on your Excel example:
             wave_val = A * math.cos(w * t + phi)
             
             # Add to the superposition for this time slot
             current_superposition += wave_val
             
-        # 4. Calculate Energy at this time step
+        # Calculate Energy at this time step
         # We just sum raw values, negatives cancel positives (Destructive).
         # total_energy += current_superposition
         
