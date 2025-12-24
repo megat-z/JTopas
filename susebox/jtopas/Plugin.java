@@ -37,6 +37,8 @@ package de.susebox.jtopas;
 
 /**<p>
  * This is the base interface for all handler pluggins in the {@link PluginTokenizer}.
+ * Since generally plugins need to know their parent <code>Tokenizer</code>, this
+ * interface is provided to pass that instance to the plugin.
  *</p>
  *
  * @see     de.susebox.java.util.Tokenizer
